@@ -23,8 +23,9 @@ import {
 //     };
 //   };
 // }>;
-// Define the type inline without importing Prisma namespace
-type CaseWithNotes = Awaited<ReturnType<typeof getCaseData>>;
+// Infer the type from the function return
+type CaseData = Awaited<ReturnType<typeof getCaseData>>;
+type CaseWithNotes = NonNullable<CaseData>;
 
 async function getCaseData(caseId: string) {
   return await prisma.case.findUnique({
