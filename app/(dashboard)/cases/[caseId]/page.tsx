@@ -16,14 +16,29 @@ import {
   Activity,
 } from "lucide-react";
 
-type CaseWithNotes = Prisma.CaseGetPayload<{
-  include: {
-    assignedTo: { select: { id: true; fullName: true; email: true } };
-    sessionNotes: {
-      include: { counselor: { select: { fullName: true } } };
-    };
-  };
-}>;
+// type CaseWithNotes = Prisma.CaseGetPayload<{
+//   include: {
+//     assignedTo: { select: { id: true; fullName: true; email: true } };
+//     sessionNotes: {
+//       include: { counselor: { select: { fullName: true } } };
+//     };
+//   };
+// }>;
+// Define the type inline without importing Prisma namespace
+type CaseWithNotes = Awaited<ReturnType<typeof getCaseData>>;
+
+async function getCaseData(caseId: string) {
+  return await prisma.case.findUnique({
+    where: { id: caseId },
+    include: {
+      assignedTo: { select: { id: true, fullName: true, email: true } },
+      sessionNotes: {
+        include: { counselor: { select: { fullName: true } } },
+        orderBy: { createdAt: "desc" },
+      },
+    },
+  });
+}
 
 export default async function CaseDetailPage({
   params,
@@ -34,17 +49,18 @@ export default async function CaseDetailPage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const caseData: CaseWithNotes | null = await prisma.case.findUnique({
-    where: { id: caseId },
-    include: {
-      assignedTo: { select: { id: true, fullName: true, email: true } },
-      sessionNotes: {
-        include: { counselor: { select: { fullName: true } } },
-        orderBy: { createdAt: "desc" },
-      },
-    },
-  });
+  // const caseData: CaseWithNotes | null = await prisma.case.findUnique({
+  //   where: { id: caseId },
+  //   include: {
+  //     assignedTo: { select: { id: true, fullName: true, email: true } },
+  //     sessionNotes: {
+  //       include: { counselor: { select: { fullName: true } } },
+  //       orderBy: { createdAt: "desc" },
+  //     },
+  //   },
+  // });
 
+   const caseData = await getCaseData(caseId);
   if (!caseData) {
     return (
       <main className="p-8 max-w-6xl mx-auto">
@@ -227,7 +243,7 @@ export default async function CaseDetailPage({
               </h2>
             </div>
             <div className="space-y-4">
-              {caseData.sessionNotes.map((note: CaseWithNotes["sessionNotes"][number]) => (
+              {caseData.sessionNotes.map((note) => (
                 <div
                   key={note.id}
                   className="border-l-4 border-blue-500 bg-linear-to-r from-blue-50 to-transparent rounded-r-xl p-6 hover:shadow-md transition-all duration-200"
