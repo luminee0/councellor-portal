@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/auth/middleware";
 import { prisma } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 import { redirect } from "next/navigation";
 import SessionNoteForm from "@/components/SessionNoteForm";
 import EmotionChart from "@/components/EmotionChart";
@@ -15,6 +16,15 @@ import {
   Activity,
 } from "lucide-react";
 
+type CaseWithNotes = Prisma.CaseGetPayload<{
+  include: {
+    assignedTo: { select: { id: true; fullName: true; email: true } };
+    sessionNotes: {
+      include: { counselor: { select: { fullName: true } } };
+    };
+  };
+}>;
+
 export default async function CaseDetailPage({
   params,
 }: {
@@ -24,7 +34,7 @@ export default async function CaseDetailPage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const caseData = await prisma.case.findUnique({
+  const caseData: CaseWithNotes | null = await prisma.case.findUnique({
     where: { id: caseId },
     include: {
       assignedTo: { select: { id: true, fullName: true, email: true } },
@@ -217,7 +227,7 @@ export default async function CaseDetailPage({
               </h2>
             </div>
             <div className="space-y-4">
-              {caseData.sessionNotes.map((note) => (
+              {caseData.sessionNotes.map((note: CaseWithNotes["sessionNotes"][number]) => (
                 <div
                   key={note.id}
                   className="border-l-4 border-blue-500 bg-linear-to-r from-blue-50 to-transparent rounded-r-xl p-6 hover:shadow-md transition-all duration-200"
